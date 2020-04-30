@@ -1,26 +1,14 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import components from '../components/index'
-const contentful = require('contentful')
-
-const client = contentful.createClient({
-  space: 'h0jo0a4gjbp4',
-  accessToken: 'ofYKTmB5mZfHUtogBcMizRbbFU8TV7RG1v8AQm2e84w'
-})
+import { renderComponent } from '../lib/renderComponent'
+import ContentfulHandler from '../lib/contentfulHandler'
 
 /**
  * Now that question remains, how do dynamically render a page?
  */
-export default function Home({entries, assets}) { 
+export default function Home(props) { 
 
-  const renderComponent = (componentEntry, i) => {
-    if (components[componentEntry]) {
-      const Component = components[componentEntry]
-      return <Component key={i} />
-    }
-  }
-  console.log(entries)
-  const homePageEntry = entries.filter(entry => entry.fields.title['en-US'] === 'HomePage2')[0]
+  console.log('props: ', props)
 
   return (
     <div className="container">
@@ -29,12 +17,11 @@ export default function Home({entries, assets}) {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
-        <h1>{homePageEntry.fields.title['en-US']}</h1>
+        <h1>{props.data.title}</h1>
 
         {
-          Object.keys(homePageEntry.fields).map((field, i) => {
-            const formattedField = field[0].toUpperCase() + field.slice(1)
-            return renderComponent(formattedField, i)
+          props.data.blocks.map((item, i) => {
+            return renderComponent(item.fields.slug, i)
           })
         }
       <ul>
@@ -42,7 +29,7 @@ export default function Home({entries, assets}) {
           <Link href='/'><a>Home</a></Link>
         </li>
         <li>
-          <Link href='/testPage'><a>testPage</a></Link>
+          <Link href='/AboutUs'><a>About Us</a></Link>
         </li>
       </ul>
       </main>
@@ -50,15 +37,14 @@ export default function Home({entries, assets}) {
   )
 }
 
-export async function getServerSideProps(context) {
-  const response = await client.sync({initial: true, resolveLinks: false})
-  const entries = response.entries
-  const assets = response.assets
-  
+export async function getServerSideProps() {
+  const client = new ContentfulHandler()
+  const response =  await client.getEntries('page', { name: 'slug', value: 'Home' })
+  console.log('response: ', response)
+
   return {
     props: {
-      entries,
-      assets
+      data: response.items ? response.items[0].fields : []
     }
   }
 }
